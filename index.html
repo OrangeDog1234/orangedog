@@ -20938,11 +20938,11 @@ window.MYTH2 = {"956": {"eff": ["inward"], "pk": "star", "pc": ["#ffffff", "#c4b
   if (typeof window.openAbusePanel === 'function') { const prev = window.openAbusePanel; window.openAbusePanel = function () { const r = prev.apply(this, arguments); try { addLimitSection(); } catch (e) {} return r; }; }
 
   /* ---------- background music (relax.mp3 next to index.html), off in Settings ---------- */
-  const MKEY = 'od_bgmusic', VKEY = 'od_bgvol';
+  const MKEY = 'od_bgmusic', VKEY = 'od_bgvol2';
   const musicOn = () => { try { return localStorage.getItem(MKEY) !== 'off'; } catch (e) { return true; } };
-  const vol = () => { try { const v = Number(localStorage.getItem(VKEY)); return isFinite(v) && localStorage.getItem(VKEY) !== null ? v : 0.35; } catch (e) { return 0.35; } };
+  const vol = () => { try { const v = Number(localStorage.getItem(VKEY)); return isFinite(v) && localStorage.getItem(VKEY) !== null ? v : 1; } catch (e) { return 1; } };
   let bg = null, broken = false, userGo = false;
-  function audio() { if (!bg && !broken) { bg = new Audio('relax.mp3'); bg.loop = true; bg.preload = 'none'; bg.volume = vol(); bg.addEventListener('error', () => { broken = true; bg = null; }); } return bg; }
+  function audio() { if (!bg && !broken) { bg = new Audio('relax.mp3'); bg.loop = true; bg.preload = 'none'; bg.volume = vol(); bg.addEventListener('error', () => { broken = true; bg = null; paintMusic(); setTimeout(() => { broken = false; }, 60000); }); } return bg; }
   function shouldPlay() {
     if (!musicOn() || broken || !userGo || document.documentElement.classList.contains('od-locked')) return false;
     const admin = document.getElementById('odMusic'); if (admin && !admin.classList.contains('hidden')) return false;   // Admin Abuse song is playing
@@ -20956,17 +20956,20 @@ window.MYTH2 = {"956": {"eff": ["inward"], "pk": "star", "pc": ["#ffffff", "#c4b
   }
   ['pointerdown', 'keydown', 'touchstart'].forEach((t) => document.addEventListener(t, () => { if (!userGo) { userGo = true; tick(); } }, { capture: true, passive: true }));
   setInterval(tick, 1000);
+  let paintMusic = () => {};
   function addMusicCard() {
     const modal = document.getElementById('settings-modal'); if (!modal || document.getElementById('odBgMusicCard')) return;
     const grid = modal.querySelector('.grid'); if (!grid) return;
     const card = el('div', 'space-y-3 p-4 rounded-2xl dark:bg-slate-950 bg-slate-50 border dark:border-slate-800 border-slate-200'); card.id = 'odBgMusicCard';
-    card.innerHTML = '<label class="font-bold text-xs text-slate-400 uppercase tracking-wider block">Background Music</label><p class="text-xs dark:text-slate-400 text-slate-500">Calm music while you play. It pauses by itself when Admin Abuse music plays.</p><button type="button" class="od-bgm btn-hover-lift w-full py-2.5 rounded-xl text-white font-bold text-sm"></button><input type="range" min="0" max="100" class="w-full od-bgmvol">';
+    card.innerHTML = '<label class="font-bold text-xs text-slate-400 uppercase tracking-wider block">Background Music</label><p class="text-xs dark:text-slate-400 text-slate-500">Calm music while you play. It pauses by itself when Admin Abuse music plays.</p><button type="button" class="od-bgm btn-hover-lift w-full py-2.5 rounded-xl text-white font-bold text-sm"></button><input type="range" min="0" max="100" class="w-full od-bgmvol"><p class="od-bgmerr text-xs font-bold" style="color:#f43f5e"></p>';
     grid.appendChild(card);
     const b = card.querySelector('.od-bgm'), r = card.querySelector('.od-bgmvol');
     const paint = () => { const on = musicOn(); b.innerHTML = on ? '<i class="fa-solid fa-music mr-1"></i>On (tap to turn off)' : '<i class="fa-solid fa-volume-xmark mr-1"></i>Off (tap to turn on)'; b.className = 'od-bgm btn-hover-lift w-full py-2.5 rounded-xl text-white font-bold text-sm ' + (on ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-600 hover:bg-slate-500'); };
     b.onclick = () => { try { localStorage.setItem(MKEY, musicOn() ? 'off' : 'on'); } catch (e) {} userGo = true; paint(); tick(); };
     r.value = Math.round(vol() * 100); r.oninput = () => { try { localStorage.setItem(VKEY, String(r.value / 100)); } catch (e) {} if (bg) bg.volume = r.value / 100; };
-    paint();
+    const err = card.querySelector('.od-bgmerr');
+    paintMusic = () => { const a = document.getElementById('odMusic'); err.textContent = broken ? 'Music file not found. Upload relax.mp3 to the same GitHub folder as index.html, then refresh.' : (musicOn() && a && !a.classList.contains('hidden') ? 'Paused while Admin Abuse music plays.' : ''); };
+    paint(); paintMusic();
   }
   if (typeof window.openSettingsModal === 'function') { const prev = window.openSettingsModal; window.openSettingsModal = function () { const r = prev.apply(this, arguments); try { addMusicCard(); } catch (e) {} return r; }; }
   window.odBgMusic = () => ({ on: musicOn(), playing: !!(bg && !bg.paused), broken: broken });
